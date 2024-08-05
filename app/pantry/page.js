@@ -33,7 +33,7 @@ const style = {
   left: '50%',
   transform: 'translate(-50%, -50%)',
   width: { xs: '90%', sm: '500px' },
-  maxWidth: '500px',
+  maxWidth: '600px',
   bgcolor: 'background.paper',
   border: '2px solid #000',
   boxShadow: 24,
@@ -282,7 +282,8 @@ export default function Home() {
 
     const prompt = `
       Generate a recipe using some or all of these pantry items: ${JSON.stringify(pantryList)}.
-      Respond with a JSON object only, no additional text. The JSON should have this structure:
+      Respond with a JSON object only, no additional text. List only maximum 5 steps. 
+      The JSON should have this structure:
       {
         "name": "Recipe Name",
         "ingredients": [
@@ -516,7 +517,7 @@ export default function Home() {
               >
                 <Box sx={style}>
                   {isRecipeLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                    <Box sx={{ overflow: "scroll", display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                       <CircularProgress />
                     </Box>
                   ) : recipe ? (
