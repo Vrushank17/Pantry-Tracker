@@ -4,7 +4,7 @@ import { db, auth, provider } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { signOut } from "firebase/auth";
 
-export default function authService() {
+export default function useAuthService() {
     const router = useRouter()
 
     async function signInWithGoogle() {

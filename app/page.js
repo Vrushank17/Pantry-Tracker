@@ -2,7 +2,7 @@
 import { Box, Typography, Button } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import authService from './authService';
+import useAuthService from './authService';
 
 const darkTheme = createTheme({
   palette: {
@@ -11,7 +11,7 @@ const darkTheme = createTheme({
 });
 
 export default function Home() {
-  const { signInWithGoogle } = authService()
+  const { signInWithGoogle } = useAuthService()
 
   return (
     <ThemeProvider theme={darkTheme}>

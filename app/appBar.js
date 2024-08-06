@@ -5,11 +5,11 @@ import {
     ListItemButton, ListItemText, Avatar, Menu, MenuItem
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import authService from './authService';
+import useAuthService from './authService';
 
 export default function MainAppBar() {
     const router = useRouter()
-    const { signOutOfGoogle } = authService()
+    const { signOutOfGoogle } = useAuthService()
     const pfpURL = localStorage.getItem('pfpURL')
 
     const [drawerOpen, setDrawerOpen] = useState(false)

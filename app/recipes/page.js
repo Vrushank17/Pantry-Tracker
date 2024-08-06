@@ -2,21 +2,15 @@
 
 "use client"
 import { Box, Typography, CardContent, Card, Stack, Divider, IconButton, Toolbar, AppBar } from '@mui/material'
-import MenuIcon from '@mui/icons-material/Menu';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { app } from '@/firebase';
+import { db } from '@/firebase';
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import React, { useEffect, useState } from 'react';
-import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
-import { useRouter } from 'next/navigation';
 import MainAppBar from '../appBar';
-
-const db = getFirestore(app)
 
 const darkTheme = createTheme({
   palette: {
