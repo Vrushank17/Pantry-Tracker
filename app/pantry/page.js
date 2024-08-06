@@ -1,32 +1,33 @@
-// pages/inventory.js
-
 "use client"
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
-import { app } from '@/firebase';
-import { getFirestore, query, where, collection, doc, addDoc, getDocs, getDoc, setDoc, deleteDoc, updateDoc, Timestamp } from "firebase/firestore";
-import { 
-  Box, Typography, Button, Modal, Stack, TextField, IconButton, Toolbar, AppBar, Snackbar, Alert,
+import { db } from '@/firebase';
+import { query, where, collection, doc, addDoc, getDocs, getDoc, setDoc, deleteDoc, updateDoc, Timestamp } from "firebase/firestore";
+import {
+  Box, Typography, Button, Modal, Stack, TextField, IconButton, Snackbar, Alert,
   InputBase, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, CircularProgress,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Drawer, List, ListItem,
-  ListItemButton, ListItemText
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, List, ListItem, ListItemText
 } from '@mui/material';
 import { ThemeProvider, createTheme, styled, alpha } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import MainAppBar from '../appBar';
 
-// API Stuff
+/*
+  API STUFF
+*/
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GOOGLE_API_KEY);
-const db = getFirestore(app)
+const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GOOGLE_API_KEY)
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
+/*
+  MODAL STYLE
+*/
 const style = {
   position: 'absolute',
   top: '50%',
@@ -43,6 +44,9 @@ const style = {
   gap: 3
 };
 
+/*
+  SEARCH COMPONENTS
+*/
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
   borderRadius: theme.shape.borderRadius,
@@ -85,6 +89,9 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
+/*
+  DARK THEME
+*/
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -92,8 +99,14 @@ const darkTheme = createTheme({
 });
 
 export default function Home() {
-  const router = useRouter();
+  /*
+    LOCAL STORAGE ITEMS
+  */
+  const userId = localStorage.getItem('userID')
 
+  /*
+    STATE VARS
+  */
   const [pantryList, setPantryList] = useState([])
 
   const [addItemModalOpen, setAddItemModalOpen] = useState(false);
@@ -122,12 +135,10 @@ export default function Home() {
   const [isRecipeLoading, setIsRecipeLoading] = useState(false);
   const [recipe, setRecipe] = useState(null)
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const toggleDrawer = (newOpen) => () => {
-    setDrawerOpen(newOpen);
-  };
-
+  /*
+    STATE CHANGE FUNCTIONS
+  */
   const handleAddItemModalOpen = () => setAddItemModalOpen(true);
   const handleAddItemModalClose = () => setAddItemModalOpen(false);
 
@@ -159,14 +170,9 @@ export default function Home() {
     setSnackbarOpenEditItem(false);
   };
 
-  const navigateToPantry = () => {
-    router.push('/pantry');
-  };
-
-  const navigateToRecipes = () => {
-    router.push('/recipes');
-  };
-
+  /*
+    FORMAT FUNCTIONS
+  */
   const formatDate = (timestamp) => {
     if (!timestamp || !timestamp.toDate) {
       return 'N/A';
@@ -177,27 +183,30 @@ export default function Home() {
 
   const calculateTotalPrice = (priceString, quantity) => {
     const price = parseFloat(priceString.replace(/[$,]/g, ''));
-  
+
     if (isNaN(price)) {
       return 'N/A';
     }
-  
+
     const totalPrice = price * quantity;
 
     return `$${totalPrice.toFixed(2)}`;
   };
 
+  /*
+    PANTRY APIS
+  */
   const updatePantry = async (searchItemName) => {
     const pantryList = []
     let querySnapshot;
 
     if (searchItemName == "") {
-      querySnapshot = await getDocs(collection(db, "pantry"))
+      querySnapshot = await getDocs(collection(db, `users/${userId}/pantry`))
     } else {
-      const q = query(collection(db, "pantry"), where("__name__", ">=", searchItemName), where("__name__", "<=", searchItemName + '\uf8ff'));
+      const q = query(collection(db, `users/${userId}/pantry`), where("__name__", ">=", searchItemName), where("__name__", "<=", searchItemName + '\uf8ff'));
       querySnapshot = await getDocs(q);
     }
-    
+
     querySnapshot.forEach((doc) => {
       pantryList.push({ name: doc.id, ...doc.data() })
     });
@@ -208,7 +217,7 @@ export default function Home() {
   const addPantryItem = async (itemName, addItemQuantity, addItemCategory, addItemPrice, addItemExpDate) => {
     console.log("Item added")
 
-    const docRef = doc(collection(db, 'pantry'), itemName)
+    const docRef = doc(collection(db, `users/${userId}/pantry`), itemName)
     const docSnap = await getDoc(docRef)
 
     const expTime = Timestamp.fromDate(dayjs(addItemExpDate).toDate())
@@ -218,17 +227,17 @@ export default function Home() {
       await updateDoc(docRef, { quantity: quantity + addItemQuantity })
     } else {
       handleSnackbarOpenAddItem()
-      
+
       if (addItemCategory == "") {
         addItemCategory = "None"
       }
 
-      await setDoc(docRef, 
-        { 
-          quantity: addItemQuantity, 
-          category: addItemCategory, 
-          price: addItemPrice, 
-          expirationDate: expTime 
+      await setDoc(docRef,
+        {
+          quantity: addItemQuantity,
+          category: addItemCategory,
+          price: addItemPrice,
+          expirationDate: expTime
         }
       )
     }
@@ -244,7 +253,7 @@ export default function Home() {
 
   const deletePantryItem = async (itemName) => {
     console.log("Item deleted")
-    const docRef = doc(collection(db, 'pantry'), itemName)
+    const docRef = doc(collection(db, `users/${userId}/pantry`), itemName)
     const docSnap = await getDoc(docRef)
 
     if (docSnap.exists()) await deleteDoc(docRef)
@@ -254,31 +263,32 @@ export default function Home() {
 
   const editPantryItem = async (itemName, newItemQuantity, newItemCategory, newItemPrice, newItemExpDate) => {
     console.log("Item edited")
-    
+
     if (newItemCategory == "") {
       newItemCategory = "None"
     }
 
     const expTime = Timestamp.fromDate(dayjs(newItemExpDate).toDate())
 
-    const docRef = doc(collection(db, 'pantry'), itemName)
-    await updateDoc(docRef, 
-      { 
-        quantity: newItemQuantity, 
+    const docRef = doc(collection(db, `users/${userId}/pantry`), itemName)
+    await updateDoc(docRef,
+      {
+        quantity: newItemQuantity,
         category: newItemCategory,
-        price: newItemPrice, 
-        expirationDate: expTime 
+        price: newItemPrice,
+        expirationDate: expTime
       }
     )
-    
+
     handleSnackbarOpenEditItem()
     updatePantry(searchItemName)
   }
 
+  /*
+    RECIPE APIS
+  */
   const fetchRecipe = async (pantryList) => {
     setIsRecipeLoading(true)
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
 
     const prompt = `
       Generate a recipe using some or all of these pantry items: ${JSON.stringify(pantryList)}.
@@ -315,16 +325,16 @@ export default function Home() {
 
     const recipeData = {
       name: recipeName || '',
-      ingredients: Array.isArray(recipeIngredients) 
+      ingredients: Array.isArray(recipeIngredients)
         ? recipeIngredients.map(ing => ({
-            name: ing.name || '',
-            quantity: ing.quantity || ''
-          }))
+          name: ing.name || '',
+          quantity: ing.quantity || ''
+        }))
         : [],
       steps: Array.isArray(recipeSteps) ? recipeSteps : []
     };
 
-    await addDoc(collection(db, "recipes"), recipeData);
+    await addDoc(collection(db, `users/${userId}/recipes`), recipeData);
   }
 
   const handleAddRecipe = (recipeName, recipeIngredients, recipeSteps) => {
@@ -332,33 +342,11 @@ export default function Home() {
     console.log("Recipe added:", recipe);
     handleRecipeModalClose();
   }
-  
+
   const handleDiscardRecipe = () => {
     setRecipe(null);
     handleRecipeModalClose();
   }
-
-  const DrawerList = (
-    <Box sx={{ width: 250 }} role="presentation" onClick={toggleDrawer(false)}>
-      <List>
-        {['Pantry', 'Recipes'].map((text, index) => (
-          <ListItem key={text} disablePadding>
-            <ListItemButton 
-              onClick={() => {
-                if (text == 'Pantry') {
-                  navigateToPantry()
-                } else {
-                  navigateToRecipes()
-                }
-              }}
-            >
-              <ListItemText primary={text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
 
   useEffect(() => {
     updatePantry(searchItemName)
@@ -367,7 +355,7 @@ export default function Home() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <Box 
+      <Box
         sx={{
           display: 'flex',
           flexDirection: 'column',
@@ -375,37 +363,9 @@ export default function Home() {
           width: '100vw',
         }}
       >
-        <Box sx={{ flexGrow: 1, maxHeight: "100px" }}>
-          <AppBar position="static" sx={{ width: '100%' }}>
-            <Toolbar sx={{ flexDirection: { xs: 'column', sm: 'row' }, padding: { xs: 1, sm: 2 } }}>
-              <div>
-                <IconButton
-                  size="large"
-                  edge="start"
-                  color="inherit"
-                  aria-label="menu"
-                  sx={{ mr: 2 }}
-                  onClick={toggleDrawer(true)}
-                >
-                  <MenuIcon />
-                </IconButton>
-                <Drawer open={drawerOpen} onClose={toggleDrawer(false)}>
-                  {DrawerList}
-                </Drawer>
-              </div>
-              <Typography
-                variant="h6"
-                noWrap
-                component="div"
-                sx={{ flexGrow: 1, display: { xs: 'block', sm: 'block' }, marginBottom: { xs: 1, sm: 0 } }}
-              >
-                Your Pantry
-              </Typography>
-            </Toolbar>
-          </AppBar>
-        </Box>
+        <MainAppBar />
 
-        <Box 
+        <Box
           sx={{
             flexGrow: 1,
             overflowY: 'auto',
@@ -414,115 +374,115 @@ export default function Home() {
           }}
         >
           <Box sx={{ py: 2, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, width: { xs: '100%', sm: 'auto' }, justifyContent: 'right' }}>
-              <Button 
-                onClick={handleAddItemModalOpen} 
-                variant='contained' 
-                fullWidth
-              >
-                Add Item To Pantry
-              </Button>
-                <Modal
-                  open={addItemModalOpen}
-                  onClose={handleAddItemModalClose}
-                  aria-labelledby="modal-modal-title"
-                  aria-describedby="modal-modal-description"
-                >
-                  <Box sx={style}>
-                    <Typography id="modal-modal-title" variant="h6" component="h2">
-                      Add Item
-                    </Typography>
-                    <Stack direction={'column'} width="100%" spacing={2}>
-                      <TextField 
-                        required
-                        id="outlined-basic" 
-                        label="Item" 
-                        variant="outlined" 
-                        value={addItemName}
-                        onChange={(e) => setAddItemName(e.target.value)}
-                        p={2}
-                        fullWidth
-                      />
-                      <TextField
-                        required 
-                        id="outlined-basic" 
-                        label="Quantity" 
-                        variant="outlined" 
-                        value={addItemQuantity}
-                        onChange={(e) => setAddItemQuantity(Number(e.target.value))}
-                        fullWidth
-                      />
-                      <TextField 
-                        id="outlined-basic" 
-                        label="Category" 
-                        variant="outlined" 
-                        value={addItemCategory}
-                        onChange={(e) => setAddItemCategory(e.target.value)}
-                        fullWidth
-                      />
-                      <TextField 
-                        required
-                        id="outlined-basic" 
-                        label="Price Per Unit" 
-                        variant="outlined" 
-                        value={addItemPrice}
-                        onChange={(e) => setAddItemPrice(e.target.value)}
-                        fullWidth
-                      />
-                      <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker
-                          label="Expiration Date"
-                          value={addItemExpDate}
-                          onChange={(newValue) => setAddItemExpDate(newValue)}
-                          renderInput={(params) => <TextField required {...params} fullWidth />}
-                          slotProps={{
-                            textField: {
-                              required: true,
-                            },
-                          }}
-                        />
-                      </LocalizationProvider>
-                      <div>
-                        <Button 
-                          onClick={() => {
-                            addPantryItem(addItemName, addItemQuantity, addItemCategory, addItemPrice, addItemExpDate)
-                            handleAddItemModalClose()
-                          }} 
-                          variant='contained'
-                        >
-                          Confirm
-                        </Button>
-                      </div>
-                    </Stack>
+            <Button
+              onClick={handleAddItemModalOpen}
+              variant='contained'
+              fullWidth
+            >
+              Add Item To Pantry
+            </Button>
+            <Modal
+              open={addItemModalOpen}
+              onClose={handleAddItemModalClose}
+              aria-labelledby="modal-modal-title"
+              aria-describedby="modal-modal-description"
+            >
+              <Box sx={style}>
+                <Typography id="modal-modal-title" variant="h6" component="h2">
+                  Add Item
+                </Typography>
+                <Stack direction={'column'} width="100%" spacing={2}>
+                  <TextField
+                    required
+                    id="outlined-basic"
+                    label="Item"
+                    variant="outlined"
+                    value={addItemName}
+                    onChange={(e) => setAddItemName(e.target.value)}
+                    p={2}
+                    fullWidth
+                  />
+                  <TextField
+                    required
+                    id="outlined-basic"
+                    label="Quantity"
+                    variant="outlined"
+                    value={addItemQuantity}
+                    onChange={(e) => setAddItemQuantity(Number(e.target.value))}
+                    fullWidth
+                  />
+                  <TextField
+                    id="outlined-basic"
+                    label="Category"
+                    variant="outlined"
+                    value={addItemCategory}
+                    onChange={(e) => setAddItemCategory(e.target.value)}
+                    fullWidth
+                  />
+                  <TextField
+                    required
+                    id="outlined-basic"
+                    label="Price Per Unit"
+                    variant="outlined"
+                    value={addItemPrice}
+                    onChange={(e) => setAddItemPrice(e.target.value)}
+                    fullWidth
+                  />
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      label="Expiration Date"
+                      value={addItemExpDate}
+                      onChange={(newValue) => setAddItemExpDate(newValue)}
+                      renderInput={(params) => <TextField required {...params} fullWidth />}
+                      slotProps={{
+                        textField: {
+                          required: true,
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
+                  <div>
+                    <Button
+                      onClick={() => {
+                        addPantryItem(addItemName, addItemQuantity, addItemCategory, addItemPrice, addItemExpDate)
+                        handleAddItemModalClose()
+                      }}
+                      variant='contained'
+                    >
+                      Confirm
+                    </Button>
+                  </div>
+                </Stack>
+              </Box>
+            </Modal>
+
+            <Button
+              onClick={() => {
+                setRecipe(null)
+                fetchRecipe(pantryList)
+                handleRecipeModalOpen()
+              }
+              }
+              variant='contained'
+              fullWidth
+            >
+              Generate Recipe
+            </Button>
+
+            <Modal
+              open={recipeModalOpen}
+              onClose={handleRecipeModalClose}
+              aria-labelledby="modal-modal-title"
+              aria-describedby="modal-modal-description"
+            >
+              <Box sx={style}>
+                {isRecipeLoading ? (
+                  <Box sx={{ overflow: "scroll", display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                    <CircularProgress />
                   </Box>
-              </Modal>
-
-              <Button 
-                onClick={() => {
-                  setRecipe(null)
-                  fetchRecipe(pantryList)
-                  handleRecipeModalOpen()
-                }
-                } 
-                variant='contained'
-                fullWidth
-              >
-                Generate Recipe
-              </Button>
-
-              <Modal
-                open={recipeModalOpen}
-                onClose={handleRecipeModalClose}
-                aria-labelledby="modal-modal-title"
-                aria-describedby="modal-modal-description"
-              >
-                <Box sx={style}>
-                  {isRecipeLoading ? (
-                    <Box sx={{ overflow: "scroll", display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                      <CircularProgress />
-                    </Box>
-                  ) : recipe ? (
-                    <>
-                      <Stack sx={{ display: 'flex', flexDirection: "column", justifyContent: 'space-between', mt: 2 }}>
+                ) : recipe ? (
+                  <>
+                    <Stack sx={{ display: 'flex', flexDirection: "column", justifyContent: 'space-between', mt: 2 }}>
                       <Typography variant="h5" component="div" gutterBottom>
                         {recipe.name}
                       </Typography>
@@ -532,7 +492,7 @@ export default function Home() {
                       <List dense>
                         {recipe.ingredients.map((ingredient, index) => (
                           <ListItem key={index}>
-                            <ListItemText 
+                            <ListItemText
                               primary={`${ingredient.name}: ${ingredient.quantity}`}
                             />
                           </ListItem>
@@ -544,47 +504,47 @@ export default function Home() {
                       <List dense>
                         {recipe.steps.map((step, index) => (
                           <ListItem key={index}>
-                            <ListItemText 
+                            <ListItemText
                               primary={`${index + 1}. ${step}`}
                             />
                           </ListItem>
                         ))}
                       </List>
-                      </Stack>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                        <Button onClick={handleDiscardRecipe} variant="outlined" color="error">
-                          Discard Recipe
-                        </Button>
-                        <Button 
-                          onClick={() => {
-                            handleAddRecipe(recipe.name, recipe.ingredients, recipe.steps)
-                          }} 
-                          variant="contained" 
-                          color="primary"
-                        >
-                          Add Recipe
-                        </Button>
-                      </Box>
-                    </>
-                  ) : (
-                    <Typography>No recipe generated. Please try again.</Typography>
-                  )}
-                </Box>
-              </Modal>
+                    </Stack>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                      <Button onClick={handleDiscardRecipe} variant="outlined" color="error">
+                        Discard Recipe
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          handleAddRecipe(recipe.name, recipe.ingredients, recipe.steps)
+                        }}
+                        variant="contained"
+                        color="primary"
+                      >
+                        Add Recipe
+                      </Button>
+                    </Box>
+                  </>
+                ) : (
+                  <Typography>No recipe generated. Please try again.</Typography>
+                )}
+              </Box>
+            </Modal>
 
-              <Search sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
-                <SearchIconWrapper>
-                  <SearchIcon />
-                </SearchIconWrapper>
-                <StyledInputBase
-                  placeholder="Search…"
-                  inputProps={{ 'aria-label': 'search' }}
-                  value={searchItemName}
-                  onChange={(e) => setSearchItemName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))}
-                  sx={{ width: '100%', ml: 1 }}
-                />
-              </Search>
-            </Box>
+            <Search sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+              <SearchIconWrapper>
+                <SearchIcon />
+              </SearchIconWrapper>
+              <StyledInputBase
+                placeholder="Search…"
+                inputProps={{ 'aria-label': 'search' }}
+                value={searchItemName}
+                onChange={(e) => setSearchItemName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))}
+                sx={{ width: '100%', ml: 1 }}
+              />
+            </Search>
+          </Box>
           <Box
             border='1px solid #333'
             borderRadius={2}
@@ -598,34 +558,34 @@ export default function Home() {
                 <TableHead>
                   <TableRow>
                     <TableCell>
-                        <Typography variant="h5">
-                            Item
-                        </Typography>
+                      <Typography variant="h5">
+                        Item
+                      </Typography>
                     </TableCell>
                     <TableCell align="right">
-                        <Typography variant="h5">
-                            Expiration Date
-                        </Typography>
+                      <Typography variant="h5">
+                        Expiration Date
+                      </Typography>
                     </TableCell>
                     <TableCell align="right">
-                        <Typography variant="h5">
-                            Quantity
-                        </Typography>
+                      <Typography variant="h5">
+                        Quantity
+                      </Typography>
                     </TableCell>
                     <TableCell align="right">
-                        <Typography variant="h5">
-                            Category
-                        </Typography>
+                      <Typography variant="h5">
+                        Category
+                      </Typography>
                     </TableCell>
                     <TableCell align="right">
-                        <Typography variant="h5">
-                            Price
-                        </Typography>
+                      <Typography variant="h5">
+                        Price
+                      </Typography>
                     </TableCell>
                     <TableCell align="right">
-                        <Typography variant="h5">
-                            Actions
-                        </Typography>
+                      <Typography variant="h5">
+                        Actions
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -635,143 +595,143 @@ export default function Home() {
                       key={item.name}
                       sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                     >
-                        <TableCell component="th" scope="row">
-                            {item.name}
-                        </TableCell>
-                        <TableCell align="right">
-                          {formatDate(item.expirationDate)}
-                        </TableCell>
-                        <TableCell align="right">{item.quantity}</TableCell>
-                        <TableCell align="right">{item.category}</TableCell>
-                        <TableCell align="right">
-                            {calculateTotalPrice(item.price, item.quantity)}
-                        </TableCell>
-                        <TableCell align="right">
-                            <Box 
-                                display={'flex'} 
-                                flexDirection={'row'} 
-                                alignItems={'right'} 
-                                justifyContent={'right'} 
-                                gap={1}
-                                key={item.name}
+                      <TableCell component="th" scope="row">
+                        {item.name}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatDate(item.expirationDate)}
+                      </TableCell>
+                      <TableCell align="right">{item.quantity}</TableCell>
+                      <TableCell align="right">{item.category}</TableCell>
+                      <TableCell align="right">
+                        {calculateTotalPrice(item.price, item.quantity)}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Box
+                          display={'flex'}
+                          flexDirection={'row'}
+                          alignItems={'right'}
+                          justifyContent={'right'}
+                          gap={1}
+                          key={item.name}
+                        >
+                          <div>
+                            <IconButton
+                              color="primary"
+                              onClick={() => {
+                                setItemToEdit(item.name)
+                                setEditItemQuantity(item.quantity)
+                                setEditItemCategory(item.category)
+                                setEditItemPrice(item.price)
+                                setEditItemExpDate(null)
+                              }}
                             >
-                              <div>
-                                <IconButton 
-                                  color="primary"
-                                  onClick={() => {
-                                    setItemToEdit(item.name)
-                                    setEditItemQuantity(item.quantity)
-                                    setEditItemCategory(item.category)
-                                    setEditItemPrice(item.price)
-                                    setEditItemExpDate(null)
-                                  }}
-                                  >
-                                    <EditIcon />
-                                </IconButton>
-                                <Modal
-                                  open={itemToEdit === item.name}
-                                  onClose={() => setItemToEdit(null)}
-                                  aria-labelledby="modal-modal-title"
-                                  aria-describedby="modal-modal-description"
-                                >
-                                  <Box sx={style}>
-                                    <Typography id="modal-modal-title" variant="h6" component="h2">
-                                      Edit {item.name}
-                                    </Typography>
-                                    <Stack direction={'column'} width="100%" spacing={2}>
-                                      <TextField
-                                        required 
-                                        id="outlined-basic" 
-                                        label="Quantity" 
-                                        variant="outlined" 
-                                        value={editItemQuantity}
-                                        onChange={(e) => setEditItemQuantity(Number(e.target.value))}
-                                        fullWidth
-                                      />
-                                      <TextField 
-                                        id="outlined-basic" 
-                                        label="Category" 
-                                        variant="outlined" 
-                                        value={editItemCategory}
-                                        onChange={(e) => setEditItemCategory(e.target.value)}
-                                        fullWidth
-                                      />
-                                      <TextField
-                                        required
-                                        id="outlined-basic" 
-                                        label="Price Per Unit" 
-                                        variant="outlined" 
-                                        value={editItemPrice}
-                                        onChange={(e) => setEditItemPrice(e.target.value)}
-                                        fullWidth
-                                      />
-                                      <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                        <DatePicker
-                                          required
-                                          label="Expiration Date"
-                                          value={editItemExpDate}
-                                          onChange={(newValue) => setEditItemExpDate(newValue)}
-                                          renderInput={(params) => <TextField {...params} fullWidth/>}
-                                          slotProps={{
-                                            textField: {
-                                              required: true,
-                                            },
-                                          }}
-                                        />
-                                      </LocalizationProvider>
-                                      <div>
-                                        <Button 
-                                          onClick={() => {
-                                            editPantryItem(item.name, editItemQuantity, editItemCategory, editItemPrice, editItemExpDate)
-                                            setItemToEdit(null)
-                                          }} 
-                                          variant='contained'
-                                        >
-                                          Confirm
-                                        </Button>
-                                      </div>
-                                    </Stack>
-                                  </Box>
-                              </Modal>
-                              </div>
-                              
-                              <div>
-                                <IconButton 
-                                color="primary"
-                                onClick={() => setItemToDelete(item.name)}
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                                <Dialog
-                                  open={itemToDelete === item.name}
-                                  onClose={() => setItemToDelete(null)}
-                                  aria-labelledby="alert-dialog-title"
-                                  aria-describedby="alert-dialog-description"
-                                >
-                                <DialogTitle id="alert-dialog-title">
-                                    {"Delete Item from Inventory?"}
-                                </DialogTitle>
-                                <DialogContent>
-                                    <DialogContentText id="alert-dialog-description">
-                                    Are you sure you want to delete {item.name}? This action is irreversible.
-                                    </DialogContentText>
-                                </DialogContent>
-                                <DialogActions>
-                                    <Button onClick={() => setItemToDelete(null)}>Cancel</Button>
-                                    <Button 
-                                    onClick={() => {
-                                        deletePantryItem(item.name)
-                                        setItemToDelete(null)
-                                    }}
-                                    autoFocus
+                              <EditIcon />
+                            </IconButton>
+                            <Modal
+                              open={itemToEdit === item.name}
+                              onClose={() => setItemToEdit(null)}
+                              aria-labelledby="modal-modal-title"
+                              aria-describedby="modal-modal-description"
+                            >
+                              <Box sx={style}>
+                                <Typography id="modal-modal-title" variant="h6" component="h2">
+                                  Edit {item.name}
+                                </Typography>
+                                <Stack direction={'column'} width="100%" spacing={2}>
+                                  <TextField
+                                    required
+                                    id="outlined-basic"
+                                    label="Quantity"
+                                    variant="outlined"
+                                    value={editItemQuantity}
+                                    onChange={(e) => setEditItemQuantity(Number(e.target.value))}
+                                    fullWidth
+                                  />
+                                  <TextField
+                                    id="outlined-basic"
+                                    label="Category"
+                                    variant="outlined"
+                                    value={editItemCategory}
+                                    onChange={(e) => setEditItemCategory(e.target.value)}
+                                    fullWidth
+                                  />
+                                  <TextField
+                                    required
+                                    id="outlined-basic"
+                                    label="Price Per Unit"
+                                    variant="outlined"
+                                    value={editItemPrice}
+                                    onChange={(e) => setEditItemPrice(e.target.value)}
+                                    fullWidth
+                                  />
+                                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <DatePicker
+                                      required
+                                      label="Expiration Date"
+                                      value={editItemExpDate}
+                                      onChange={(newValue) => setEditItemExpDate(newValue)}
+                                      renderInput={(params) => <TextField {...params} fullWidth />}
+                                      slotProps={{
+                                        textField: {
+                                          required: true,
+                                        },
+                                      }}
+                                    />
+                                  </LocalizationProvider>
+                                  <div>
+                                    <Button
+                                      onClick={() => {
+                                        editPantryItem(item.name, editItemQuantity, editItemCategory, editItemPrice, editItemExpDate)
+                                        setItemToEdit(null)
+                                      }}
+                                      variant='contained'
                                     >
-                                    Yes
+                                      Confirm
                                     </Button>
-                                </DialogActions>
-                                </Dialog>
-                                </div>
-                            </Box>
-                        </TableCell>
+                                  </div>
+                                </Stack>
+                              </Box>
+                            </Modal>
+                          </div>
+
+                          <div>
+                            <IconButton
+                              color="primary"
+                              onClick={() => setItemToDelete(item.name)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                            <Dialog
+                              open={itemToDelete === item.name}
+                              onClose={() => setItemToDelete(null)}
+                              aria-labelledby="alert-dialog-title"
+                              aria-describedby="alert-dialog-description"
+                            >
+                              <DialogTitle id="alert-dialog-title">
+                                {"Delete Item from Inventory?"}
+                              </DialogTitle>
+                              <DialogContent>
+                                <DialogContentText id="alert-dialog-description">
+                                  Are you sure you want to delete {item.name}? This action is irreversible.
+                                </DialogContentText>
+                              </DialogContent>
+                              <DialogActions>
+                                <Button onClick={() => setItemToDelete(null)}>Cancel</Button>
+                                <Button
+                                  onClick={() => {
+                                    deletePantryItem(item.name)
+                                    setItemToDelete(null)
+                                  }}
+                                  autoFocus
+                                >
+                                  Yes
+                                </Button>
+                              </DialogActions>
+                            </Dialog>
+                          </div>
+                        </Box>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

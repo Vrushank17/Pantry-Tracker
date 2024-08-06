@@ -1,10 +1,8 @@
-// pages/home.js
-
 "use client"
 import { Box, Typography, Button } from '@mui/material';
-import { useRouter } from 'next/navigation';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import authService from './authService';
 
 const darkTheme = createTheme({
   palette: {
@@ -13,11 +11,7 @@ const darkTheme = createTheme({
 });
 
 export default function Home() {
-  const router = useRouter();
-
-  const navigateToPantry = () => {
-    router.push('/pantry');
-  };
+  const { signInWithGoogle } = authService()
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -34,10 +28,12 @@ export default function Home() {
         <Typography variant="h1">SmartPantry</Typography>
         <Typography variant="h4">An easy-to-use pantry management app!</Typography>
         <Button 
-          onClick={navigateToPantry} 
+          onClick={() => {
+            signInWithGoogle()
+          }} 
           variant='contained'
         >
-          Get Started
+          Sign In With Google
         </Button>
       </Box>
     </ThemeProvider>
