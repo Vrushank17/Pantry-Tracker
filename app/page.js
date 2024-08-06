@@ -3,6 +3,7 @@ import { Box, Typography, Button } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import useAuthService from './authService';
+import GoogleIcon from '@mui/icons-material/Google';
 
 const darkTheme = createTheme({
   palette: {
@@ -32,6 +33,7 @@ export default function Home() {
             signInWithGoogle()
           }} 
           variant='contained'
+          startIcon={<GoogleIcon />}
         >
           Sign In With Google
         </Button>
