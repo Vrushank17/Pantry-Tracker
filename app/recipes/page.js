@@ -19,7 +19,7 @@ const darkTheme = createTheme({
 });
 
 export default function Home() {
-  const userId = localStorage.getItem('userID')
+  const [userId, setUserId] = useState(null)
 
   const [recipes, setRecipes] = useState([])
 
@@ -84,6 +84,13 @@ export default function Home() {
   useEffect(() => {
     updateRecipes()
   }, [])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userId = localStorage.getItem('userId')
+      if (userId) setUserId(localStorage.getItem('userId'));
+    }
+  }, []);
 
   return (
     <ThemeProvider theme={darkTheme}>

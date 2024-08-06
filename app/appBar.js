@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Box, Typography, Button, IconButton, Toolbar, AppBar, Drawer, List, ListItem,
@@ -11,7 +11,7 @@ import useAuthService from './authService';
 export default function MainAppBar() {
     const router = useRouter()
     const { signOutOfGoogle } = useAuthService()
-    const pfpURL = localStorage.getItem('pfpURL')
+    const [pfpURL, setPfpURL] = useState('');
 
     const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -55,6 +55,12 @@ export default function MainAppBar() {
             </List>
         </Box>
     );
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setPfpURL(localStorage.getItem('pfpURL') || '');
+        }
+    }, [])
 
     return (
         <AppBar position="static" sx={{ width: '100%' }}>

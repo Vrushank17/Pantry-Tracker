@@ -100,13 +100,9 @@ const darkTheme = createTheme({
 
 export default function Home() {
   /*
-    LOCAL STORAGE ITEMS
-  */
-  const userId = localStorage.getItem('userID')
-
-  /*
     STATE VARS
   */
+  const [userId, setUserId] = useState(null)
   const [pantryList, setPantryList] = useState([])
 
   const [addItemModalOpen, setAddItemModalOpen] = useState(false);
@@ -197,8 +193,9 @@ export default function Home() {
     PANTRY APIS
   */
   const updatePantry = async (searchItemName) => {
+    console.log(userId)
     const pantryList = []
-    let querySnapshot;
+    let querySnapshot
 
     if (searchItemName == "") {
       querySnapshot = await getDocs(collection(db, `users/${userId}/pantry`))
@@ -351,6 +348,13 @@ export default function Home() {
   useEffect(() => {
     updatePantry(searchItemName)
   }, [searchItemName])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userId = localStorage.getItem('userId')
+      if (userId) setUserId(localStorage.getItem('userId'));
+    }
+  }, []);
 
   return (
     <ThemeProvider theme={darkTheme}>
