@@ -35,10 +35,9 @@ export default function useAuthService() {
                         });
                 }
 
-                localStorage.setItem('userID', user.uid)
+                localStorage.setItem('userId', user.uid)
                 localStorage.setItem('pfpURL', user.photoURL)
-
-                console.log(user.uid)
+                
                 router.push('/pantry')
             })
     }

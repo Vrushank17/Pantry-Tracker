@@ -82,15 +82,18 @@ export default function Home() {
   };
 
   useEffect(() => {
-    updateRecipes()
-  }, [])
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const userId = localStorage.getItem('userId')
-      if (userId) setUserId(localStorage.getItem('userId'));
+    const currUserId = localStorage.getItem('userId')
+    console.log("Retrieved userId from localStorage:", currUserId);
+    if (currUserId) {
+      setUserId(currUserId);
     }
   }, []);
+  
+  useEffect(() => {
+    if (userId) {
+      updateRecipes();
+    }
+  }, [userId]);
 
   return (
     <ThemeProvider theme={darkTheme}>

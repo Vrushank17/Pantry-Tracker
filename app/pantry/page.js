@@ -346,15 +346,18 @@ export default function Home() {
   }
 
   useEffect(() => {
-    updatePantry(searchItemName)
-  }, [searchItemName])
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const userId = localStorage.getItem('userId')
-      if (userId) setUserId(localStorage.getItem('userId'));
+    const currUserId = localStorage.getItem('userId')
+    console.log("Retrieved userId from localStorage:", currUserId);
+    if (currUserId) {
+      setUserId(currUserId);
     }
   }, []);
+  
+  useEffect(() => {
+    if (userId) {
+      updatePantry(searchItemName);
+    }
+  }, [userId, searchItemName]);
 
   return (
     <ThemeProvider theme={darkTheme}>
