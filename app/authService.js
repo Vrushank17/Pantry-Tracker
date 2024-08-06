@@ -1,3 +1,4 @@
+"use client"
 import { signInWithPopup } from 'firebase/auth';
 import { collection, doc, getDoc, setDoc } from "firebase/firestore";
 import { db, auth, provider } from '@/firebase';
